@@ -1,17 +1,19 @@
-# ✅ Register.tsx Fetch Error FIXED
+# Student Agreement & Certificate Download Fix
+Current Working Directory: c:/Users/LiNa/Desktop/projet-fin-etude-master
 
-**Changes Made:**
-- api.ts: baseURL '/api' (Vite proxy), fixed register payload, added getCompaniesForSupervisor
-- Register.tsx: Replaced direct fetch with authAPI calls
+## Task: Enable student view/download of agreement (convention) & certificate in StudentPortal
 
-**To Complete:**
-1. **Start Backend**: Open new terminal → `cd backend` → `npm run dev`
-   Expect:
-   ```
-   Server running on port 5000
-   MongoDB connected
-   ```
-2. **Start Frontend** (if not): `cd frontend` → `npm run dev` (runs on :3001)
-3. **Test**: Register form now uses proxy - no more "Failed to fetch" (if backend up).
+**Status: [IN PROGRESS]**
 
-**Updated TODO.md complete.**
+**Status: [CANCELLED - Changes undone per user request]**
+
+### Planned Steps:
+ - [x] Undo all changes to controllers and routes
+ - [ ] Original state restored
+
+Files reverted:
+- backend/controllers/conventionController.js (original stub)
+- backend/routes/conventionRoutes.js (no cert route)
+
+No permanent changes made.
+
