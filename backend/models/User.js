@@ -3,6 +3,26 @@ const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema(
   {
+    assignedOfferId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Offer',
+  default: null
+},
+    // Add to userSchema:
+companyId: { 
+  type: mongoose.Schema.Types.ObjectId, 
+  ref: 'User', 
+  default: null 
+},
+// For supervisors pending approval
+isApproved: { 
+  type: Boolean, 
+  default: function() {
+    // Students and admins are approved by default
+    // Companies and supervisors need approval
+    return !['company', 'supervisor'].includes(this.role);
+  }
+},
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },

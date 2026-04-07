@@ -2,10 +2,27 @@ const mongoose = require('mongoose');
 const Offer = require('./models/offer');
 const User = require('./models/User');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('Connected to MongoDB for seeding...');
+
+    // Create Super Admin user first
+    const superAdminExists = await User.findOne({ role: 'super_admin' });
+    if (!superAdminExists) {
+      console.log('Creating super admin user...');
+      const superAdminPass = await bcrypt.hash('superadmin123', 12);
+      const superAdmin = new User({
+        name: 'Super Admin',
+        email: 'superadmin@stag.io',
+        password: superAdminPass,
+        role: 'super_admin',
+        isApproved: true
+      });
+      await superAdmin.save();
+      console.log('Super Admin created! Email: superadmin@stag.io | Password: superadmin123');
+    }
 
     // Sample companies
     const companyUsers = await User.find({ role: 'company', isApproved: true });
@@ -20,6 +37,40 @@ mongoose.connect(process.env.MONGODB_URI)
         isApproved: true
       });
       await company.save();
+    }
+
+    // Create sample admin user
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      console.log('Creating admin user...');
+      const adminPass = await bcrypt.hash('admin123', 12);
+      const admin = new User({
+        name: 'Admin User',
+        email: 'admin@stag.io',
+        password: adminPass,
+        role: 'admin',
+        isApproved: true
+      });
+      await admin.save();
+      console.log('Admin created! Email: admin@stag.io | Password: admin123');
+    }
+
+    // Create sample student user
+    const studentExists = await User.findOne({ role: 'student' });
+    if (!studentExists) {
+      console.log('Creating sample student...');
+      const studentPass = await bcrypt.hash('student123', 12);
+      const student = new User({
+        name: 'John Doe',
+        email: 'student@example.com',
+        password: studentPass,
+        role: 'student',
+        isApproved: true,
+        institution: 'Tech University',
+        major: 'Computer Science'
+      });
+      await student.save();
+      console.log('Student created! Email: student@example.com | Password: student123');
     }
 
     // Sample offers

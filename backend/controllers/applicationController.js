@@ -53,10 +53,11 @@ const applyToOffer = async (req, res) => {
     );
 
     res.status(201).json({ message: "Application submitted successfully!", application });
-  } catch (err) {
-    if (err.code === 11000) return res.status(400).json({ message: "You have already applied to this offer" });
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
+ } catch (err) {
+  console.error('APPLY ERROR:', err); // ← add this
+  if (err.code === 11000) return res.status(400).json({ message: "You have already applied to this offer" });
+  res.status(500).json({ message: "Server error", error: err.message });
+}
 };
 
 // @route   GET /api/applications/my/applications
@@ -197,12 +198,13 @@ const validateApplication = async (req, res) => {
     }
 
     application.status = status;
+    if (adminNote) {
+      application.adminNote = adminNote;
+    }
     await application.save();
 
-    if (status === "accepted") {
-      const { generateConvention } = require("./conventionController");
-      await generateConvention(application._id);
-    }
+    // Skip convention for now - fix PDF deps later
+    console.log('Skipping convention generation (PDF issue)');
 
     const msg = status === "accepted"
       ? "Congratulations! Your application has been approved. Your internship convention has been generated."

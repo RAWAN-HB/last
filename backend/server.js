@@ -16,13 +16,13 @@ const companyRoutes = require("./routes/companyRoutes");
 const superAdminRoutes = require("./routes/superAdminRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const studentRoutes = require("./routes/studentRoutes");
+const supervisorMgmtRoutes = require("./routes/supervisorMgmtRoutes");
 
 const app = express();
 
 // ── CORS ──────────────────────────────────────
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow any localhost port in development
     if (!origin || origin.startsWith('http://localhost')) {
       callback(null, true);
     } else {
@@ -38,7 +38,7 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Swagger ───────────────────────────────────
+// ── Swagger (FIXED) ───────────────────────────
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -48,44 +48,26 @@ const swaggerOptions = {
       description: "API documentation for Stag.io platform",
     },
     servers: [
-      { url: "http://localhost:5000", description: "Local development" },
-      { url: "https://stagio-backend.onrender.com", description: "Production" },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
-      },
-    },
-    security: [{ bearerAuth: [] }],
+      { url: "http://localhost:5000" }
+    ]
   },
-  apis: [path.join(__dirname, "/routes/*.js")],
+  apis: [path.join(__dirname, "/routes/*.js")]
 };
 
 const swaggerSpecs = swaggerJsdoc(swaggerOptions);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
-  customSiteTitle: "Stag.io API Docs",
-  swaggerOptions: {
-    persistAuthorization: true,
-    displayRequestDuration: true,
-    filter: true,
-    tryItOutEnabled: true,
-  },
-}));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // ── API Routes ────────────────────────────────
-app.use("/api/auth",         authRoutes);
-app.use("/api/offers",       offerRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/offers", offerRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/conventions",  conventionRoutes);
-app.use("/api/supervisor",   supervisorRoutes);
-app.use("/api/company",      companyRoutes);
-app.use("/api/super",        superAdminRoutes);
-app.use("/api/admin",        adminRoutes);
-app.use("/api/student",      studentRoutes);
+app.use("/api/conventions", conventionRoutes);
+app.use("/api/supervisor", supervisorRoutes);
+app.use("/api/company", companyRoutes);
+app.use("/api/company", supervisorMgmtRoutes);
+app.use("/api/super", superAdminRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/student", studentRoutes);
 
 // ── Health check ──────────────────────────────
 app.get("/", (req, res) => {
@@ -101,14 +83,30 @@ app.use((err, req, res, next) => {
 });
 
 // ── MongoDB ───────────────────────────────────
-mongoose
-  .connect(process.env.MONGO_URI || "mongodb+srv://rawanhalbout_db_user:rawannouni19@cluster0.dylysbc.mongodb.net/stagdb?retryWrites=true&w=majority")
-  .then(() => console.log("✅  MongoDB connected"))
-  .catch((err) => console.log("❌  MongoDB Error:", err.message));
-
-// ── Start server ──────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀  Server running on port ${PORT}`);
-  console.log(`📚  Swagger docs → http://localhost:${PORT}/api-docs`);
-});
+
+async function startServer() {
+  if (!process.env.MONGO_URI) {
+    console.error("❌  Missing MONGO_URI in environment variables.");
+    process.exit(1);
+  }
+
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    console.log("✅  MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀  Server running on port ${PORT}`);
+      console.log(`📚  Swagger docs → http://localhost:${PORT}/api-docs`);
+    });
+  } catch (err) {
+    console.error("❌  MongoDB Error:", err.message || err);
+    console.error("❌  Server startup aborted because MongoDB connection failed.");
+    process.exit(1);
+  }
+}
+
+startServer();

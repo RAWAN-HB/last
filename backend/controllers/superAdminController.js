@@ -3,6 +3,7 @@ const Offer = require("../models/offer");
 const Application = require("../models/Application");
 const Convention = require("../models/Convention");
 const Certificate = require("../models/Certificate");
+const Tracking = require("../models/tracking");
 
 // @route   GET /api/super/stats
 // @access  Private (Super Admin only)
@@ -171,8 +172,49 @@ const deleteUser = async (req, res) => {
       return res.status(403).json({ message: "Cannot delete super admin" });
     }
 
+    // Cascade delete all related data
+    const userId = user._id;
+
+    // Delete applications where user is student or company
+    await Application.deleteMany({
+      $or: [
+        { student: userId },
+        { company: userId }
+      ]
+    });
+
+    // Delete tracking records where user is student, supervisor, or company
+    await Tracking.deleteMany({
+      $or: [
+        { student: userId },
+        { supervisor: userId },
+        { company: userId }
+      ]
+    });
+
+    // Delete conventions where user is student or company
+    await Convention.deleteMany({
+      $or: [
+        { student: userId },
+        { company: userId }
+      ]
+    });
+
+    // Delete certificates where user is student or company
+    await Certificate.deleteMany({
+      $or: [
+        { student: userId },
+        { company: userId }
+      ]
+    });
+
+    // Delete offers where user is company
+    await Offer.deleteMany({ company: userId });
+
+    // Finally delete the user
     await user.deleteOne();
-    res.status(200).json({ message: "User deleted successfully" });
+
+    res.status(200).json({ message: "User and all related data deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

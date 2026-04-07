@@ -38,6 +38,21 @@ const applicationSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    // Supervisor evaluation (added after internship completion)
+    evaluation: {
+      performanceScore: { type: Number, min: 0, max: 100, default: null },
+      attendanceScore: { type: Number, min: 0, max: 100, default: null },
+      tasksScore: { type: Number, min: 0, max: 100, default: null },
+      overallScore: { type: Number, min: 0, max: 100, default: null },
+      evaluation: {
+        type: String,
+        enum: ["excellent", "very good", "good", "satisfactory", "failed", null],
+        default: null,
+      },
+      passed: { type: Boolean, default: null },
+      comment: { type: String, default: null },
+      submittedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

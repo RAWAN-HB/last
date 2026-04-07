@@ -36,7 +36,6 @@ const { upload } = require("../config/cloudinary");
  *         required: true
  *         schema:
  *           type: string
- *         description: ID of the offer to apply to
  *     requestBody:
  *       required: true
  *       content:
@@ -51,7 +50,6 @@ const { upload } = require("../config/cloudinary");
  *               cv:
  *                 type: string
  *                 format: binary
- *                 description: CV file (PDF or DOCX only)
  *               fullName:
  *                 type: string
  *               email:
@@ -62,16 +60,25 @@ const { upload } = require("../config/cloudinary");
  *       201:
  *         description: Application submitted successfully
  *       400:
- *         description: Already applied, offer not available, or missing CV
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
+ *         description: Already applied or missing CV
  *       404:
  *         description: Offer not found
  */
-// FIX: was POST /:offerId — wildcard collided with /:id/review and /:id/validate
-router.post("/apply/:offerId", protect, authorizeRoles("student"), upload.single("cv"), applyToOffer);
+router.post(
+  "/apply/:offerId",
+  protect,
+  authorizeRoles("student"),
+  (req, res, next) => {
+    upload.single("cv")(req, res, (err) => {
+      if (err) {
+        console.error("❌ UPLOAD ERROR:", err);
+        return res.status(500).json({ message: "File upload failed", error: err.message });
+      }
+      next();
+    });
+  },
+  applyToOffer
+);
 
 /**
  * @swagger
@@ -84,8 +91,6 @@ router.post("/apply/:offerId", protect, authorizeRoles("student"), upload.single
  *     responses:
  *       200:
  *         description: List of student's applications
- *       401:
- *         description: Unauthorized
  */
 router.get("/my/applications", protect, authorizeRoles("student"), getMyApplications);
 
@@ -93,7 +98,7 @@ router.get("/my/applications", protect, authorizeRoles("student"), getMyApplicat
  * @swagger
  * /api/applications/my/{id}:
  *   get:
- *     summary: Get a single application by ID (student, own only)
+ *     summary: Get a single application by ID
  *     tags: [Applications]
  *     security:
  *       - bearerAuth: []
@@ -103,14 +108,13 @@ router.get("/my/applications", protect, authorizeRoles("student"), getMyApplicat
  *         required: true
  *         schema:
  *           type: string
- *         description: Application ID
  *     responses:
  *       200:
  *         description: Application details
  *       403:
- *         description: Not authorized to view this application
+ *         description: Not authorized
  *       404:
- *         description: Application not found
+ *         description: Not found
  */
 router.get("/my/:id", protect, authorizeRoles("student"), getMyApplicationById);
 
@@ -118,7 +122,7 @@ router.get("/my/:id", protect, authorizeRoles("student"), getMyApplicationById);
  * @swagger
  * /api/applications/my/{id}:
  *   delete:
- *     summary: Withdraw an application (only allowed when status is pending)
+ *     summary: Withdraw an application
  *     tags: [Applications]
  *     security:
  *       - bearerAuth: []
@@ -128,16 +132,13 @@ router.get("/my/:id", protect, authorizeRoles("student"), getMyApplicationById);
  *         required: true
  *         schema:
  *           type: string
- *         description: Application ID
  *     responses:
  *       200:
- *         description: Application withdrawn successfully
+ *         description: Withdrawn successfully
  *       400:
- *         description: Cannot withdraw — application is no longer pending
- *       403:
- *         description: Not authorized
+ *         description: Cannot withdraw
  *       404:
- *         description: Application not found
+ *         description: Not found
  */
 router.delete("/my/:id", protect, authorizeRoles("student"), withdrawApplication);
 
@@ -147,7 +148,7 @@ router.delete("/my/:id", protect, authorizeRoles("student"), withdrawApplication
  * @swagger
  * /api/applications/offer/{offerId}:
  *   get:
- *     summary: Get all applications for a specific offer (company, own offers only)
+ *     summary: Get all applications for a specific offer
  *     tags: [Applications]
  *     security:
  *       - bearerAuth: []
@@ -157,10 +158,9 @@ router.delete("/my/:id", protect, authorizeRoles("student"), withdrawApplication
  *         required: true
  *         schema:
  *           type: string
- *         description: Offer ID
  *     responses:
  *       200:
- *         description: List of applications for the offer
+ *         description: List of applications
  *       403:
  *         description: Not authorized
  *       404:
@@ -182,15 +182,12 @@ router.get("/offer/:offerId", protect, authorizeRoles("company"), getOfferApplic
  *         required: true
  *         schema:
  *           type: string
- *         description: Application ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - status
  *             properties:
  *               status:
  *                 type: string
@@ -199,11 +196,11 @@ router.get("/offer/:offerId", protect, authorizeRoles("company"), getOfferApplic
  *       200:
  *         description: Application reviewed
  *       400:
- *         description: Invalid status value
+ *         description: Invalid status
  *       403:
  *         description: Not authorized
  *       404:
- *         description: Application not found
+ *         description: Not found
  */
 router.put("/:id/review", protect, authorizeRoles("company"), reviewApplication);
 
@@ -213,17 +210,13 @@ router.put("/:id/review", protect, authorizeRoles("company"), reviewApplication)
  * @swagger
  * /api/applications/admin/all:
  *   get:
- *     summary: Get all applications (admin and super admin)
+ *     summary: Get all applications
  *     tags: [Applications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of all applications
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
+ *         description: All applications
  */
 router.get("/admin/all", protect, authorizeRoles("admin", "super_admin"), getAllApplicationsAdmin);
 
@@ -231,7 +224,7 @@ router.get("/admin/all", protect, authorizeRoles("admin", "super_admin"), getAll
  * @swagger
  * /api/applications/{id}/validate:
  *   put:
- *     summary: Admin approves or rejects an application — triggers convention generation on approval
+ *     summary: Admin approves or rejects an application
  *     tags: [Applications]
  *     security:
  *       - bearerAuth: []
@@ -241,15 +234,12 @@ router.get("/admin/all", protect, authorizeRoles("admin", "super_admin"), getAll
  *         required: true
  *         schema:
  *           type: string
- *         description: Application ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - status
  *             properties:
  *               status:
  *                 type: string
@@ -258,13 +248,13 @@ router.get("/admin/all", protect, authorizeRoles("admin", "super_admin"), getAll
  *                 type: string
  *     responses:
  *       200:
- *         description: Application validated and convention generated if accepted
+ *         description: Application validated
  *       400:
- *         description: Invalid status or application not in pending_admin_approval state
+ *         description: Invalid status
  *       403:
  *         description: Forbidden
  *       404:
- *         description: Application not found
+ *         description: Not found
  */
 router.put("/:id/validate", protect, authorizeRoles("admin", "super_admin"), validateApplication);
 

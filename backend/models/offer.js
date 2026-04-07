@@ -51,6 +51,13 @@ const offerSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // ✅ NEW: Assigned supervisor for this offer
+    supervisor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["draft", "pending", "published", "rejected", "closed"],
